@@ -1,0 +1,66 @@
+version: "3.6"
+
+services:
+  mongo:
+    image: mongo:6
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+    ports:
+      - 8888:8081
+    depends_on:
+      - mongo
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL: mongodb://mongo:27017/
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: >
+      bash -c "npm install cookie-parser cors bcryptjs jsonwebtoken @types/cookie-parser @types/cors @types/bcryptjs @types/jsonwebtoken --save && npm run start"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend/static:/usr/share/nginx/html/static
+      - ./frontend/src:/app/src
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mongo-data:
+  caddy_data:
+  caddy_config:
