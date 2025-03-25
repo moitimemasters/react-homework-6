@@ -1,0 +1,33 @@
+version: "3.6"
+
+services:
+  mongo:
+    image: mongo:6
+    ports:
+      - 27017:27017
+
+  mongo-express:
+    image: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+    ports:
+      - 8888:8081
+    depends_on:
+      - mongo
+    links:
+      - mongo
+
+  backend:
+    build:
+      context: .
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL: mongodb://mongo:27017/
+    ports:
+      - 3000:3000
+    links:
+      - mongo
